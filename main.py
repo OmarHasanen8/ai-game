@@ -1,7 +1,8 @@
 from maz.generator import generate_maze, print_maze
-from search.BFS import bfs
+from search.BFS import bfs as bfs_search
+from search.DFS import dfs as dfs_search
+import time
 
-# دالة للعثور على موقع عنصر معين داخل المتاهة (مثل المفتاح أو الكنز)
 def find_in_maze(maze, target):
     for i in range(len(maze)):
         for j in range(len(maze[0])):
@@ -9,43 +10,53 @@ def find_in_maze(maze, target):
                 return (i, j)
     return None
 
-# تمييز المسار داخل نسخة من المتاهة باستخدام القيمة 8
 def mark_path_on_maze(maze, path):
-    marked = [row[:] for row in maze]  # نسخ المتاهة دون تعديل الأصل
+    marked = [row[:] for row in maze]
     for x, y in path:
         if marked[x][y] == 0:
-            marked[x][y] = 8  # تحديد المسار
+            marked[x][y] = 8
     return marked
 
 def main():
-    # توليد متاهة عشوائية
     maze = generate_maze()
     print("The original maze:")
     print_maze(maze)
 
-    # تحديد المواضع
     start = (0, 0)
     key = find_in_maze(maze, 3)
     treasure = find_in_maze(maze, 4)
 
-    # التأكد من وجود المفتاح والكنز
     if not key or not treasure:
         print("No key or treasure found!")
         return
 
-    # البحث عن المسار من البداية إلى المفتاح ثم إلى الكنز
-    path = bfs(maze, start, key, treasure)
+    # --- BFS ---
+    start_time = time.perf_counter()
+    bfs_path, bfs_visited = bfs_search(maze, start, key, treasure)
+    bfs_time = time.perf_counter() - start_time
 
-    if not path:
-        print("\nNo path to the treasure found!")
+    # --- DFS ---
+    start_time = time.perf_counter()
+    dfs_path, dfs_visited = dfs_search(maze, start, key, treasure)
+    dfs_time = time.perf_counter() - start_time
+
+    print("\n=== BFS Result ===")
+    if bfs_path:
+        print(f"Path length: {len(bfs_path)}")
+        print(f"Visited nodes: {bfs_visited}")
+        print(f"Execution time: {bfs_time:.6f} seconds")
+        print_maze(mark_path_on_maze(maze, bfs_path))
     else:
-        print("\nPath from start to key to treasure:")
-        print(path)
+        print("No path found with BFS.")
 
-        # عرض المتاهة مع تمييز المسار
-        marked_maze = mark_path_on_maze(maze, path)
-        print("\nMaze with path marking (8 represents the path):")
-        print_maze(marked_maze)
+    print("\n=== DFS Result ===")
+    if dfs_path:
+        print(f"Path length: {len(dfs_path)}")
+        print(f"Visited nodes: {dfs_visited}")
+        print(f"Execution time: {dfs_time:.6f} seconds")
+        print_maze(mark_path_on_maze(maze, dfs_path))
+    else:
+        print("No path found with DFS.")
 
 if __name__ == "__main__":
     main()
