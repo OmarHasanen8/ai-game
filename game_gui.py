@@ -139,7 +139,15 @@ def main():
                             show_key = False
 
                         prev_enemy = tuple(enemy_pos)
-                        enemy_pos = list(get_enemy_move(MAZE, tuple(player_pos), tuple(enemy_pos), treasure_pos, last_enemy_pos=prev_enemy))
+                        enemy_pos = list(get_enemy_move(
+                            MAZE,
+                            tuple(player_pos),
+                            tuple(enemy_pos),
+                            treasure_pos,
+                            key_pos,
+                            enemy_has_key,
+                            last_enemy_pos=prev_enemy
+                        ))
 
                         if not enemy_has_key and tuple(enemy_pos) == key_pos:
                             enemy_has_key = True
@@ -167,3 +175,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

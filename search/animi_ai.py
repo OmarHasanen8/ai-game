@@ -1,10 +1,16 @@
 import math
 
-def evaluate(player_pos, enemy_pos, treasure_pos):
-    # دالة التقييم: الفرق بين المسافات إلى الكنز
+def evaluate(player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key):
+    if not enemy_has_key:
+        # الهدف الوصول إلى المفتاح
+        enemy_dist = abs(enemy_pos[0] - key_pos[0]) + abs(enemy_pos[1] - key_pos[1])
+    else:
+        # الهدف الوصول إلى الكنز
+        enemy_dist = abs(enemy_pos[0] - treasure_pos[0]) + abs(enemy_pos[1] - treasure_pos[1])
+
     player_dist = abs(player_pos[0] - treasure_pos[0]) + abs(player_pos[1] - treasure_pos[1])
-    enemy_dist = abs(enemy_pos[0] - treasure_pos[0]) + abs(enemy_pos[1] - treasure_pos[1])
-    return player_dist - enemy_dist  # كلما كان العدو أقرب للكنز، كانت القيمة أفضل له
+
+    return player_dist - enemy_dist
 
 def get_neighbors(pos, maze):
     directions = [(-1,0), (1,0), (0,-1), (0,1)]
@@ -16,15 +22,16 @@ def get_neighbors(pos, maze):
             neighbors.append((nx, ny))
     return neighbors
 
-def minimax(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos):
+def minimax(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key):
     if depth == 0 or player_pos == treasure_pos or enemy_pos == player_pos:
-        return evaluate(player_pos, enemy_pos, treasure_pos), enemy_pos
+        return evaluate(player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key), enemy_pos
 
     if is_enemy_turn:
         max_eval = -math.inf
         best_move = enemy_pos
         for move in get_neighbors(enemy_pos, maze):
-            eval_score, _ = minimax(maze, depth - 1, False, player_pos, move, treasure_pos)
+            has_key = enemy_has_key or move == key_pos
+            eval_score, _ = minimax(maze, depth - 1, False, player_pos, move, treasure_pos, key_pos, has_key)
             if eval_score > max_eval:
                 max_eval = eval_score
                 best_move = move
@@ -33,21 +40,22 @@ def minimax(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos):
         min_eval = math.inf
         best_move = player_pos
         for move in get_neighbors(player_pos, maze):
-            eval_score, _ = minimax(maze, depth - 1, True, move, enemy_pos, treasure_pos)
+            eval_score, _ = minimax(maze, depth - 1, True, move, enemy_pos, treasure_pos, key_pos, enemy_has_key)
             if eval_score < min_eval:
                 min_eval = eval_score
                 best_move = move
         return min_eval, best_move
 
-def alpha_beta(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos, alpha, beta):
+def alpha_beta(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key, alpha, beta):
     if depth == 0 or player_pos == treasure_pos or enemy_pos == player_pos:
-        return evaluate(player_pos, enemy_pos, treasure_pos), enemy_pos
+        return evaluate(player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key), enemy_pos
 
     if is_enemy_turn:
         max_eval = -math.inf
         best_move = enemy_pos
         for move in get_neighbors(enemy_pos, maze):
-            eval_score, _ = alpha_beta(maze, depth - 1, False, player_pos, move, treasure_pos, alpha, beta)
+            has_key = enemy_has_key or move == key_pos
+            eval_score, _ = alpha_beta(maze, depth - 1, False, player_pos, move, treasure_pos, key_pos, has_key, alpha, beta)
             if eval_score > max_eval:
                 max_eval = eval_score
                 best_move = move
@@ -59,7 +67,7 @@ def alpha_beta(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos, 
         min_eval = math.inf
         best_move = player_pos
         for move in get_neighbors(player_pos, maze):
-            eval_score, _ = alpha_beta(maze, depth - 1, True, move, enemy_pos, treasure_pos, alpha, beta)
+            eval_score, _ = alpha_beta(maze, depth - 1, True, move, enemy_pos, treasure_pos, key_pos, enemy_has_key, alpha, beta)
             if eval_score < min_eval:
                 min_eval = eval_score
                 best_move = move
@@ -68,11 +76,11 @@ def alpha_beta(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos, 
                 break
         return min_eval, best_move
 
-def get_enemy_move(maze, player_pos, enemy_pos, treasure_pos, last_enemy_pos=None, use_alpha_beta=True, depth=4):
+def get_enemy_move(maze, player_pos, enemy_pos, treasure_pos, key_pos=None, enemy_has_key=False, last_enemy_pos=None, use_alpha_beta=True, depth=4):
     if use_alpha_beta:
-        _, move = alpha_beta(maze, depth, True, player_pos, enemy_pos, treasure_pos, -math.inf, math.inf)
+        _, move = alpha_beta(maze, depth, True, player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key, -math.inf, math.inf)
     else:
-        _, move = minimax(maze, depth, True, player_pos, enemy_pos, treasure_pos)
+        _, move = minimax(maze, depth, True, player_pos, enemy_pos, treasure_pos, key_pos, enemy_has_key)
 
     # تفادي العودة إلى الموضع السابق
     if move == last_enemy_pos:
