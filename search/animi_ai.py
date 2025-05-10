@@ -68,9 +68,16 @@ def alpha_beta(maze, depth, is_enemy_turn, player_pos, enemy_pos, treasure_pos, 
                 break
         return min_eval, best_move
 
-def get_enemy_move(maze, player_pos, enemy_pos, treasure_pos, use_alpha_beta=True, depth=4):
+def get_enemy_move(maze, player_pos, enemy_pos, treasure_pos, last_enemy_pos=None, use_alpha_beta=True, depth=4):
     if use_alpha_beta:
         _, move = alpha_beta(maze, depth, True, player_pos, enemy_pos, treasure_pos, -math.inf, math.inf)
     else:
         _, move = minimax(maze, depth, True, player_pos, enemy_pos, treasure_pos)
+
+    # تفادي العودة إلى الموضع السابق
+    if move == last_enemy_pos:
+        neighbors = get_neighbors(enemy_pos, maze)
+        for alt_move in neighbors:
+            if alt_move != last_enemy_pos:
+                return alt_move
     return move

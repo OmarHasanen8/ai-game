@@ -42,8 +42,8 @@ def draw_cell(win, x, y, color):
     pygame.draw.rect(win, color, rect)
     pygame.draw.rect(win, BLACK, rect, 1)
 
-# === رسم المتاهة مع الصور ===
-def draw_maze(win, maze, images):
+# === رسم المتاهة ===
+def draw_maze(win, maze, images, show_key):
     for y in range(ROWS):
         for x in range(COLS):
             value = maze[y][x]
@@ -53,12 +53,12 @@ def draw_maze(win, maze, images):
             elif value == START:
                 color = BLUE
             draw_cell(win, x, y, color)
-            if value == KEY:
+            if value == KEY and show_key:
                 win.blit(images["key"], (x * CELL_SIZE, y * CELL_SIZE))
             elif value == TREASURE:
                 win.blit(images["treasure"], (x * CELL_SIZE, y * CELL_SIZE))
 
-# === إيجاد عنصر في المتاهة ===
+# === إيجاد موقع العنصر في المتاهة ===
 def find(maze, value):
     for y in range(len(maze)):
         for x in range(len(maze[0])):
@@ -83,7 +83,7 @@ def reset_game():
 def main():
     pygame.init()
     win = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("AI Maze Game")
+    pygame.display.set_caption("AI Maze Game - المستوى الثالث")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 40)
     images = load_images()
@@ -94,9 +94,13 @@ def main():
     global player_has_key, enemy_has_key, winner_text
 
     running = True
+    show_key = True
+    frame_counter = 0
+    max_end_frames = 180  # 3 ثوانٍ قبل إعادة التشغيل
+
     while running:
         win.fill(WHITE)
-        draw_maze(win, MAZE, images)
+        draw_maze(win, MAZE, images, show_key)
 
         # رسم اللاعب والعدو
         draw_cell(win, player_pos[0], player_pos[1], DARK_BLUE)
@@ -111,21 +115,18 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-            # إعادة التشغيل
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     reset_game()
+                    show_key = True
+                    continue
 
                 if not winner_text:
                     dx, dy = 0, 0
-                    if event.key == pygame.K_LEFT:
-                        dx = -1
-                    elif event.key == pygame.K_RIGHT:
-                        dx = 1
-                    elif event.key == pygame.K_UP:
-                        dy = -1
-                    elif event.key == pygame.K_DOWN:
-                        dy = 1
+                    if event.key == pygame.K_LEFT: dx = -1
+                    elif event.key == pygame.K_RIGHT: dx = 1
+                    elif event.key == pygame.K_UP: dy = -1
+                    elif event.key == pygame.K_DOWN: dy = 1
 
                     new_x = player_pos[0] + dx
                     new_y = player_pos[1] + dy
@@ -135,11 +136,14 @@ def main():
 
                         if not player_has_key and tuple(player_pos) == key_pos:
                             player_has_key = True
+                            show_key = False
 
-                        enemy_pos = list(get_enemy_move(MAZE, tuple(player_pos), tuple(enemy_pos), treasure_pos))
+                        prev_enemy = tuple(enemy_pos)
+                        enemy_pos = list(get_enemy_move(MAZE, tuple(player_pos), tuple(enemy_pos), treasure_pos, last_enemy_pos=prev_enemy))
 
                         if not enemy_has_key and tuple(enemy_pos) == key_pos:
                             enemy_has_key = True
+                            show_key = False
 
                         if player_has_key and tuple(player_pos) == treasure_pos:
                             winner_text = "اللاعب فاز!"
@@ -147,6 +151,14 @@ def main():
                             winner_text = "العدو فاز!"
                         elif tuple(enemy_pos) == tuple(player_pos):
                             winner_text = "العدو أمسك اللاعب!"
+
+        # إعادة تشغيل تلقائية بعد نهاية اللعبة
+        if winner_text:
+            frame_counter += 1
+            if frame_counter >= max_end_frames:
+                reset_game()
+                show_key = True
+                frame_counter = 0
 
         pygame.display.flip()
         clock.tick(60)
