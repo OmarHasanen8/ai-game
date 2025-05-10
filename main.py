@@ -1,79 +1,56 @@
 from maz.generator import generate_maze, print_maze
-from search.BFS import bfs
-from search.DFS import dfs
-from search.astar import astar_path
+from search.BFS import bfs as bfs_search
+from search.DFS import dfs as dfs_search
+from search.astar import astar_search
 import time
 
-# إيجاد مواقع العناصر
-def find(maze, target):
+# إيجاد موقع عنصر في المتاهة
+def find_in_maze(maze, target):
     for i, row in enumerate(maze):
         for j, val in enumerate(row):
             if val == target:
                 return (i, j)
     return None
 
-# تمييز المسار بالقيمة 8
-def mark_path(maze, path):
+# تمييز المسار داخل نسخة من المتاهة
+def mark_path_on_maze(maze, path):
     marked = [row[:] for row in maze]
     for x, y in path:
         if marked[x][y] == 0:
             marked[x][y] = 8
     return marked
 
-# تنفيذ خوارزمية وقياس الزمن والنتائج
-def run_algo(name, fn, maze, start, key, treasure):
+# تنفيذ خوارزمية وعرض النتائج
+def run_and_report(name, search_fn, maze, start, key, treasure):
     start_time = time.perf_counter()
-    if name == "A*":
-        path1, visited1 = astar_path(maze, start, key)
-        path2, visited2 = astar_path(maze, key, treasure)
-    else:
-        path1, visited1 = fn(maze, start, key)
-        path2, visited2 = fn(maze, key, treasure)
-    elapsed = time.perf_counter() - start_time
+    path, visited = search_fn(maze, start, key, treasure)
+    duration = time.perf_counter() - start_time
 
-    path = path1 + path2[1:] if path1 and path2 else []
-    return {
-        "name": name,
-        "path": path,
-        "visited": visited1 + visited2,
-        "time": elapsed
-    }
-
-def report(result):
-    print(f"\n=== {result['name']} ===")
-    if result['path']:
-        print(f"Path length: {len(result['path'])}")
-        print(f"Visited nodes: {result['visited']}")
-        print(f"Execution time: {result['time']:.6f}s")
+    print(f"\n=== {name} ===")
+    if path:
+        print(f"Path length: {len(path)}")
+        print(f"Visited nodes: {visited}")
+        print(f"Execution time: {duration:.6f} seconds")
+        print_maze(mark_path_on_maze(maze, path))
     else:
-        print("Path not found.")
+        print(f"No path found using {name}.")
 
 def main():
     maze = generate_maze()
-    print("=== Generated Maze ===")
+    print("=== Original Maze ===")
     print_maze(maze)
 
     start = (0, 0)
-    key = find(maze, 3)
-    treasure = find(maze, 4)
+    key = find_in_maze(maze, 3)
+    treasure = find_in_maze(maze, 4)
 
     if not key or not treasure:
-        print("Missing key or treasure.")
+        print("Key or treasure not found!")
         return
 
-    results = [
-        run_algo("BFS", bfs, maze, start, key, treasure),
-        run_algo("DFS", dfs, maze, start, key, treasure),
-        run_algo("A*", None, maze, start, key, treasure),
-    ]
-
-    for res in results:
-        report(res)
-
-    print("\n=== Marked Path for A* (if found) ===")
-    a_star_result = next((r for r in results if r['name'] == "A*"), None)
-    if a_star_result and a_star_result["path"]:
-        print_maze(mark_path(maze, a_star_result["path"]))
+    run_and_report("BFS", bfs_search, maze, start, key, treasure)
+    run_and_report("DFS", dfs_search, maze, start, key, treasure)
+    run_and_report("A*", astar_search, maze, start, key, treasure)
 
 if __name__ == "__main__":
     main()

@@ -8,10 +8,8 @@ def dfs_path(maze, start, goal):
 
     while stack:
         current = stack.pop()
-
         if current in visited:
             continue
-
         visited.add(current)
 
         if current == goal:
@@ -20,28 +18,20 @@ def dfs_path(maze, start, goal):
                 path.append(current)
                 current = parent[current]
             path.append(start)
-            path.reverse()
-            return path, len(visited)
+            return path[::-1], len(visited)
 
         for dx, dy in directions:
             nx, ny = current[0] + dx, current[1] + dy
             neighbor = (nx, ny)
-
-            if (0 <= nx < rows and 0 <= ny < cols and
-                    maze[nx][ny] != 1 and
-                    neighbor not in visited):
+            if 0 <= nx < rows and 0 <= ny < cols and maze[nx][ny] != 1 and neighbor not in visited:
                 stack.append(neighbor)
                 parent[neighbor] = current
 
     return [], len(visited)
 
-
 def dfs(maze, start, key, treasure):
-    path1, visited1 = dfs_path(maze, start, key)
-    path2, visited2 = dfs_path(maze, key, treasure)
-
-    if not path1 or not path2:
-        return [], visited1 + visited2
-
-    full_path = path1 + path2[1:]
-    return full_path, visited1 + visited2
+    path1, v1 = dfs_path(maze, start, key)
+    path2, v2 = dfs_path(maze, key, treasure)
+    if path1 and path2:
+        return path1 + path2[1:], v1 + v2
+    return [], v1 + v2

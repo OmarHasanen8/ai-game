@@ -1,64 +1,48 @@
-from maz.generator import generate_maze, print_maze
-from search.BFS import BFS as bfs_search
-from search.DFS import DFS as dfs_search
-from search.astar import astar_path
-import time
+import heapq
+import math
 
-# دالة إيجاد موقع عنصر معين في المتاهة
-def find_in_maze(maze, target):
-    for i in range(len(maze)):
-        for j in range(len(maze[0])):
-            if maze[i][j] == target:
-                return (i, j)
-    return None
+def heuristic(a, b):
+    return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
-# تمييز المسار داخل المتاهة بالقيمة 8
-def mark_path_on_maze(maze, path):
-    marked = [row[:] for row in maze]
-    for x, y in path:
-        if marked[x][y] == 0:
-            marked[x][y] = 8
-    return marked
+def astar_path(maze, start, goal):
+    rows, cols = len(maze), len(maze[0])
+    open_set = [(heuristic(start, goal), 0, start)]
+    parent = {}
+    g_score = {start: 0}
+    visited = set()
+    directions = [(-1, 0), (1, 0), (0, 1), (0, -1)]
 
-def run_and_report(name, search_fn, maze, start, key, treasure):
-    start_time = time.perf_counter()
-    if name == "A*":
-        path1, visited1 = astar_path(maze, start, key)
-        path2, visited2 = astar_path(maze, key, treasure)
-    else:
-        path1, visited1 = search_fn(maze, start, key)
-        path2, visited2 = search_fn(maze, key, treasure)
+    while open_set:
+        _, current_g, current = heapq.heappop(open_set)
+        if current == goal:
+            path = []
+            while current != start:
+                path.append(current)
+                current = parent[current]
+            path.append(start)
+            return path[::-1], len(visited)
 
-    exec_time = time.perf_counter() - start_time
+        if current in visited:
+            continue
+        visited.add(current)
 
-    full_path = path1 + path2[1:] if path1 and path2 else []
-    visited_total = visited1 + visited2
+        for dx, dy in directions:
+            nx, ny = current[0] + dx, current[1] + dy
+            neighbor = (nx, ny)
+            if 0 <= nx < rows and 0 <= ny < cols and maze[nx][ny] != 1 and neighbor not in visited:
+                tentative_g = g_score[current] + 1
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    g_score[neighbor] = tentative_g
+                    f_score = tentative_g + heuristic(neighbor, goal)
+                    heapq.heappush(open_set, (f_score, tentative_g, neighbor))
+                    parent[neighbor] = current
 
-    print(f"\n=== {name} Result ===")
-    if full_path:
-        print(f"Path length: {len(full_path)}")
-        print(f"Visited nodes: {visited_total}")
-        print(f"Execution time: {exec_time:.6f} seconds")
-        print_maze(mark_path_on_maze(maze, full_path))
-    else:
-        print(f"No path found using {name}.")
+    return [], len(visited)
 
-def main():
-    maze = generate_maze()
-    print("=== Original Maze ===")
-    print_maze(maze)
+def astar_search(maze, start, key, treasure):
+    path1, v1 = astar_path(maze, start, key)
+    path2, v2 = astar_path(maze, key, treasure)
+    if path1 and path2:
+        return path1 + path2[1:], v1 + v2
+    return [], v1 + v2
 
-    start = (0, 0)
-    key = find_in_maze(maze, 3)
-    treasure = find_in_maze(maze, 4)
-
-    if not key or not treasure:
-        print("Key or treasure not found.")
-        return
-
-    run_and_report("BFS", bfs_search, maze, start, key, treasure)
-    run_and_report("DFS", dfs_search, maze, start, key, treasure)
-    run_and_report("A*", None, maze, start, key, treasure)
-
-if __name__ == "__main__":
-    main()
